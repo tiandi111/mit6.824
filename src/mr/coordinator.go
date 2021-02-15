@@ -30,8 +30,9 @@ func (c *Coordinator) MapReduce(args *MapReduceArgs, reply *MapReduceReply) erro
 	case New:
 		c.RLock()
 		defer c.RUnlock()
+		mapFinished := len(c.taskFinished) >= len(c.files)
 		if !c.Done() {
-			for i := 0; i < (len(c.files) + c.nReduce); i++ {
+			for i := 0; (!mapFinished && i < len(c.files)) || (mapFinished && i < len(c.files)+c.nReduce); i++ {
 				updateTime, started := c.taskUpdateTime[i]
 				timeout := time.Since(time.Unix(updateTime, 0)) > 10*time.Second
 				_, finished := c.taskFinished[i]
