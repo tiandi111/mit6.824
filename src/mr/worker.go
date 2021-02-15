@@ -147,7 +147,7 @@ func DoMap(reply *MapReduceReply, mapf func(string, string) []KeyValue) error {
 		if _, err := tempFile.Write(data); err != nil {
 			return fmt.Errorf("rename file %s: %s", tempFile.Name(), err)
 		}
-
+		tempFiles[i] = tempFile
 		tempFiles[i].Close()
 	}
 	// rename temp files
