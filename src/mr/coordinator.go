@@ -28,15 +28,18 @@ func (c *Coordinator) MapReduce(args *MapReduceArgs, reply *MapReduceReply) erro
 	log.Printf("MapReduce request: %v", *args)
 	switch s := args.TaskState; s {
 	case New:
-		c.RLock()
-		defer c.RUnlock()
-		mapFinished := len(c.taskFinished) >= len(c.files)
 		if !c.Done() {
+			c.Lock()
+			defer c.Unlock()
+			mapFinished := len(c.taskFinished) >= len(c.files)
+			// start reduce when map finished
 			for i := 0; (!mapFinished && i < len(c.files)) || (mapFinished && i < len(c.files)+c.nReduce); i++ {
+
 				updateTime, started := c.taskUpdateTime[i]
 				timeout := time.Since(time.Unix(updateTime, 0)) > 10*time.Second
 				_, finished := c.taskFinished[i]
-				if !finished && (!started || timeout) {
+
+				if !finished && (!started || timeout) { // reissue timeout task
 					c.taskUpdateTime[i] = time.Now().Unix()
 					if i < len(c.files) {
 						reply.TaskType = Map
@@ -49,9 +52,12 @@ func (c *Coordinator) MapReduce(args *MapReduceArgs, reply *MapReduceReply) erro
 					reply.NReduce = c.nReduce
 					return nil
 				}
+
 			}
+			reply.TaskType = None
+		} else {
+			reply.TaskType = Done
 		}
-		reply.TaskType = Done
 	case Running:
 		return nil
 	case Failed:
