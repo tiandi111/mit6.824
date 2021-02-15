@@ -1,0 +1,11 @@
+#!/bin/bash
+
+
+rm mr-*
+rm temp-*
+
+cd ../mrapps && go build $RACE -buildmode=plugin wc.go || exit 1
+
+cd ../main && go build mrcoordinator.go && go build mrworker.go
+
+
